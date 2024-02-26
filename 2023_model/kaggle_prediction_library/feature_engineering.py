@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
-
+import statsmodels.api as sm
 import abc
 
 class FeatureEng:
@@ -96,7 +96,7 @@ class Efficiency(FeatureEng):
         return df.groupby(groupby_cols)[agg_col].transform(lambda x: x.shift(1).expanding().mean())
 
 
-    def process(self):
+    def process(self, return_detailed=False):
 
         all_games = self.games.copy()
 
@@ -133,6 +133,9 @@ class Efficiency(FeatureEng):
         final.columns = ['Season', 'TeamID', 'adj_oe', 'adj_de']
 
         final['adj_margin'] = final['adj_oe'] - final['adj_de']
+
+        if return_detailed:
+            return final, all_games3
 
         return final
 
@@ -199,3 +202,206 @@ class FiveThirtyEight(FeatureEng):
         
         return df[['TeamID', 'Season'] + features]
     
+
+class SeasonStats(FeatureEng):
+
+    def __init__(self, games):
+        self.games = games
+
+    def process(self):
+        
+        df = self.games.copy()
+
+        df["Team1_PointDiff"] = df["Team1_score"] - df["Team2_score"]
+
+        boxscore_cols = [
+                'Team1_FGM', 'Team1_FGA', 'Team1_FGM3', 'Team1_FGA3', 'Team1_OR', 'Team1_Ast', 'Team1_TO', 
+                'Team1_Stl', 'Team1_PF', 'Team1_FTA', 'Team1_FTM',  
+                'Team1_PointDiff']
+
+        season_statistics = df.groupby(["Season", 'Team1'])[boxscore_cols].agg(np.mean).reset_index()
+        season_statistics.columns = ["Season", 'TeamID'] + [i[6:] for i in boxscore_cols]
+
+        return season_statistics
+
+class TeamQuality(FeatureEng):
+
+    def __init__(self, games, seeds):
+
+        df = games.copy()
+        df["Team1"] = df["Team1"].astype(str).copy()
+        df["Team2"] = df["Team2"].astype(str).copy()
+
+        march_madness = pd.merge(seeds[['Season','TeamID']],seeds[['Season','TeamID']], on='Season')
+        march_madness.columns = ['Season', 'Team1', 'Team2']
+        march_madness.Team1 = march_madness.Team1.astype(str)
+        march_madness.Team2 = march_madness.Team2.astype(str)
+        df = pd.merge(df, march_madness, on = ['Season','Team1','Team2'])
+
+        self.games = df
+
+    def get_team_quality(self, games, season):
+        formula = 'Outcome~-1+Team1+Team2'
+        glm = sm.GLM.from_formula(formula=formula, 
+                                data=games.loc[games.Season==season,:], 
+                                family=sm.families.Binomial()).fit()
+        
+        quality = pd.DataFrame(glm.params).reset_index()
+        quality.columns = ['TeamID','quality']
+        quality['Season'] = season
+        quality = quality.loc[quality.TeamID.str.contains('Team1')].reset_index(drop=True)
+        quality['TeamID'] = quality['TeamID'].astype(str).apply(lambda x: x[6:10]).astype(int)
+        return quality
+    
+    def process(self):
+        
+        games = self.games.copy()
+        team_quality_stats = pd.concat([self.get_team_quality(games, s) 
+                                        for s in games.Season.unique()], axis=0)
+        return team_quality_stats
+
+
+class RoundNumber(FeatureEng):
+
+    def __init__(self, seeds, seed_round):
+
+        self.seeds = seeds.copy()
+        self.seed_round = seed_round.copy()
+       
+    def process(self):
+        """Process the data to create feature(s)"""
+        
+        tmp2 = self.seeds.merge(self.seed_round, how="left", on="Seed")
+
+        rename_cols = ['Season', 'Seed', 'TeamID', 'GameRound', 'GameSlot', 'EarlyDayNum', 'LateDayNum']
+
+        tmp3=tmp2.copy()
+        tmp3.columns = ["Team1_"+col if col in rename_cols else col for col in tmp2.columns]
+
+        tmp4=tmp2.copy()
+        tmp4.columns = ["Team2_"+col if col in rename_cols else col for col in tmp2.columns]
+
+        tmp5 = tmp3.merge(tmp4, how="left",
+                        left_on = ['Team1_Season', 'Team1_GameSlot'],
+                        right_on = ['Team2_Season', 'Team2_GameSlot'])
+
+        # Sort the DataFrame by 'cola', 'colb', and 'colc'
+        tmp5 = tmp5.sort_values(by=['Team1_TeamID', 'Team2_TeamID', 'Team1_GameRound'])
+
+        # Create a row number column within each group
+        tmp5['row_number'] = tmp5.groupby(['Team1_Season', 'Team1_TeamID', 'Team2_TeamID']).cumcount() + 1
+
+        tmp6 = tmp5[tmp5.row_number == 1]
+
+        final = tmp6[tmp6.Team1_TeamID != tmp6.Team2_TeamID].copy()
+
+        final.rename(columns = {"Team1_TeamID":"Team1", 
+                                "Team2_TeamID":"Team2", 
+                                "Team1_Season":"Season", 
+                                "Team1_GameRound": "GameRound"}, inplace=True)
+
+        return final
+    
+    def add(self, base):
+        """Add features to another dataset"""
+
+        features = self.process()
+        join_key = ["Team1", "Team2", "Season"]
+        base = base.merge(features[["GameRound"] + join_key], how="left", on=join_key)
+    
+        return base
+
+class FirstRoundOpponentQuality(FeatureEng):
+
+    def __init__(self, first_round_df, other_rounds_df):
+
+        self.first_round_df = first_round_df.copy()
+        self.other_rounds_df = other_rounds_df.copy()
+       
+    def process(self):
+        """Process the data to create feature(s)"""
+
+        first_round_opp = self.first_round_df.rename(columns = {"t2_final_rank":"round1_opponent_rank"})
+    
+        tmp = self.other_rounds_df.merge(first_round_opp[["Season", "Team1", "round1_opponent_rank"]], how = "left", on = ["Season", "Team1"])
+
+        #tmp2 = tmp[~tmp.round1_opponent_rank.isna()].copy()
+
+        tmp["round1_opponent_quality"] = (tmp["round1_opponent_rank"] - tmp["round1_opponent_rank"].min()) / (tmp["round1_opponent_rank"].max() - tmp["round1_opponent_rank"].min())
+        
+        return tmp
+    
+    def add(self):
+        # returns other round data with new col
+        return self.process()
+
+class TeamNames(FeatureEng):
+
+    def __init__(self, team_names):
+        self.team_names = team_names.copy()
+
+    def process(self):
+        return self.team_names
+    
+    def add(self, base):
+        """Add features to another dataset"""
+
+        features = self.process()
+
+        cols = [col for col in features.columns if col not in ['Season', 'TeamID']]
+
+        features_team1 = features.rename(columns = {f: 't1_' + f for f in cols})
+        features_team1 = features_team1.rename(columns = {'TeamID': 'Team1'})
+        features_team2 = features.rename(columns ={f: 't2_' + f for f in cols})
+        features_team2 = features_team2.rename(columns = {'TeamID': 'Team2'})
+        
+        base = base.merge(features_team1, on = ['Team1'], how = 'left')
+        base = base.merge(features_team2, on = ['Team2'], how = 'left')
+    
+        return base
+
+class FirstRoundOdds(FeatureEng):
+
+    def __init__(self, first_round_odds_data):
+        self.first_round_odds_data = first_round_odds_data.copy()
+
+    def process(self):
+
+        odds_data = self.first_round_odds_data.copy()
+        
+        odds_data["Date"] = pd.to_datetime(odds_data["Date"], format='%b %d, %Y')
+
+        # Extract the year
+        odds_data['Season'] = odds_data["Date"].dt.year
+    
+        return odds_data
+
+
+    def add(self, base):
+
+        odds_data = self.process() 
+
+        first_round_odds_data1 = odds_data.rename(columns={"kaggle_team": "t1_TeamName",
+                                                               "odds": "odds_team1"})
+        
+        cols = ["t1_TeamName", "Season", "odds_team1"]
+        
+        base = base.merge(first_round_odds_data1[cols], how="left", on=["Season", "t1_TeamName"])
+
+        first_round_odds_data2 = odds_data.rename(columns={"kaggle_team": "t2_TeamName",
+                                                               "odds": "odds_team2"})
+
+        cols = ["t2_TeamName", "Season", "odds_team2"]
+
+        base = base.merge(first_round_odds_data2[cols], how="left", on=["Season", "t2_TeamName"])
+        
+        base["final_odds"] = np.where(base.odds_team1.isna(),
+                                        base.odds_team2 * -1, 
+                                        base.odds_team1)
+        
+        base.drop(["odds_team1", "odds_team2"], axis=1, inplace=True)
+        
+        return base
+        
+    
+

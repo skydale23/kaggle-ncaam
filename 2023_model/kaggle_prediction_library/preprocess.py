@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import submission
 
 class PreProcess():
 
@@ -51,8 +52,30 @@ class PreProcess():
         
         #Create full df
         full = df_winners.append(df_losers)
+        full["margin"] = full["Team1_score"] - full["Team2_score"]
 
         return full
-            
+
+def full_setup(detailed_tourney_results, regular_season_results,
+               detailed_tourney_results_w, regular_season_results_w,
+               sub_df, mteams):
+
+
+    base = PreProcess(detailed_tourney_results, regular_season_results).process()
+    base_w = PreProcess(detailed_tourney_results_w, regular_season_results_w).process()
+
+    tourney_games = base[base.TourneyGame == 1]
+    regular_season_games = base[base.TourneyGame == 0]
+
+    tourney_games_w = base_w[base_w.TourneyGame == 1]
+    regular_season_games_w = base_w[base_w.TourneyGame == 0]
+
+
+    to_predict= submission.SubmissionSetup(sub_df, tourney_games, tourney_games_w, mteams.copy()).setup()
+
+    to_predict_mens = to_predict[to_predict.Gender == 'M'].copy()
+    to_predict_womens = to_predict[to_predict.Gender == 'W'].copy()
+
+    return to_predict_mens, to_predict_womens, regular_season_games, regular_season_games_w            
 
     

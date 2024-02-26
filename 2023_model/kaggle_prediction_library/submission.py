@@ -20,9 +20,10 @@ class SubmissionSetup:
         sub = sub.merge(mens_teams[['Team1', 'Men']], how='left', on='Team1')
         sub['Gender'] = np.where(sub.Men == 1, 'M', 'W')
         sub['Outcome'] = None
+        sub['margin'] = None
         sub['type'] = 'Prediction'
 
-        return sub[['type', 'ID', 'Pred', 'Season', 'Team1', 'Team2', 'Outcome', 'Gender']].copy()
+        return sub[['type', 'ID', 'Pred', 'Season', 'Team1', 'Team2', 'Outcome', 'Gender', 'margin']].copy()
 
 
     def prepare_historical_games(tourney_games, gender):
@@ -34,7 +35,7 @@ class SubmissionSetup:
         tourney_games['type'] = 'Historical'
         tourney_games['Gender'] = gender
 
-        return tourney_games[['type', 'ID', 'Pred', 'Season', 'Team1', 'Team2', 'Outcome', 'Gender']].copy()
+        return tourney_games[['type', 'ID', 'Pred', 'Season', 'Team1', 'Team2', 'Outcome', 'Gender', 'margin']].copy()
 
     def setup(self):
         sub = SubmissionSetup.prepare_submission_games(self.sub_data, self.mens_teams)
