@@ -122,7 +122,7 @@ def run_evaluation_framework(df, model, features, param_grid, target="Outcome",
                     n_repeats=repeated_kfold_n_repeats, scoring='neg_brier_score')
 
     mean_score, confidence_interval = get_confidence_interval_grid_search(grid_search, 
-                                                            total_splits=repeated_kfold_n_splits*repeated_kfold_n_repeats)
+                                                total_splits=repeated_kfold_n_splits*repeated_kfold_n_repeats)
 
     model.set_params(**grid_search.best_params_)
 
