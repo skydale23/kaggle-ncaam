@@ -89,12 +89,14 @@ def rolling_season_cv(model, train_input, features, label='Outcome', cv_start=20
             train = train_input[train_input.Season < season].copy()
             test = train_input[train_input.Season == season].copy()
 
+
             X_train = train[features].copy()
             X_test = test[features].copy()
             y_train = train[label].copy()
             y_test = test[label].copy()
 
             model.fit(X_train[features], y_train)
+            
             y_prob = model.predict_proba(X_test[features])
 
             test["y_prob"] = y_prob[:,1].copy()
@@ -116,7 +118,7 @@ def rolling_season_cv(model, train_input, features, label='Outcome', cv_start=20
 
 # This is the final function to use for cv / eval
 def run_evaluation_framework(df, model, features, param_grid, target="Outcome",
-                             repeated_kfold_n_splits=10, repeated_kfold_n_repeats=25):
+                             repeated_kfold_n_splits=10, repeated_kfold_n_repeats=25, cv_start=2007):
 
     grid_search = repeated_kfold(df, model, features, target, param_grid, n_splits=repeated_kfold_n_splits, 
                     n_repeats=repeated_kfold_n_repeats, scoring='neg_brier_score')
@@ -126,7 +128,7 @@ def run_evaluation_framework(df, model, features, param_grid, target="Outcome",
 
     model.set_params(**grid_search.best_params_)
 
-    rolling_season_avg = rolling_season_cv(model, df, features, label=target, cv_start=2007)
+    rolling_season_avg = rolling_season_cv(model, df, features, label=target, cv_start=cv_start)
 
     eval_df = pd.DataFrame(
                 [[grid_search.best_params_, mean_score, confidence_interval, rolling_season_avg]],
