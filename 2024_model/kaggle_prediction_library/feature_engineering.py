@@ -368,11 +368,11 @@ class FirstRoundOdds(FeatureEng):
     def process(self):
 
         odds_data = self.first_round_odds_data.copy()
-        
-        odds_data["Date"] = pd.to_datetime(odds_data["Date"], format='%b %d, %Y')
 
-        # Extract the year
-        odds_data['Season'] = odds_data["Date"].dt.year
+        if "Season" not in odds_data.columns:
+            odds_data["Date"] = pd.to_datetime(odds_data["Date"], format='%b %d, %Y')
+            # Extract the year
+            odds_data['Season'] = odds_data["Date"].dt.year
     
         return odds_data
 
