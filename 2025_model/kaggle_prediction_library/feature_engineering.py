@@ -63,7 +63,7 @@ class TournamentSeed(FeatureEng):
         base['seed_diff'] = base['t1_Seed'] - base['t2_Seed'] 
         return base
 
-    
+ 
 class Efficiency(FeatureEng):
 
     def __init__(self, games, away_bonus):
@@ -138,6 +138,7 @@ class Efficiency(FeatureEng):
             return final, all_games3
 
         return final
+
 
 class FinalRanking(FeatureEng):
 
@@ -404,4 +405,14 @@ class FirstRoundOdds(FeatureEng):
         return base
         
     
+class InjuryData(FeatureEng):
+
+    def __init__(self, injury_data):
+        self.injury_data = injury_data.copy()
+
+    def process(self):
+        return self.injury_data[["TeamID", "Season", "injured_players_value", "health_score"]]
+
+    
+
 

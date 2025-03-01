@@ -82,7 +82,7 @@ def rolling_season_cv(model, train_input, features, label='Outcome', cv_start=20
 
     preds_dfs = []
 
-    for n, season in enumerate(train_input.Season.unique()):
+    for n, season in enumerate(train_input[train_input.Season >= cv_start].Season.unique()):
         
         if season >= cv_start:
 
@@ -96,6 +96,8 @@ def rolling_season_cv(model, train_input, features, label='Outcome', cv_start=20
             y_test = test[label].copy()
 
             model.fit(X_train[features], y_train)
+
+            print(model.named_steps['logisticregression'].coef_)
             
             y_prob = model.predict_proba(X_test[features])
 
