@@ -404,15 +404,113 @@ class FirstRoundOdds(FeatureEng):
         
         return base
         
-    
-class InjuryData(FeatureEng):
 
-    def __init__(self, injury_data):
-        self.injury_data = injury_data.copy()
+# Next step is to rewrite this so that the calculate_team_season_stats part only calculates the metrics I need:
+
+# Work is in progress
+
+# 't1_top8_BPM_weighted_mean', 't2_top8_BPM_weighted_mean',
+#     't1_top8_TO_stdev', 't2_top8_TO_stdev',
+#     't1_top5_PRPG!_median', 't2_top5_PRPG!_median',
+#     't1_top3_DR_median', 't2_top3_DR_median',
+#     't1_top5_STL_cv', 't2_top5_STL_cv',
+#     't1_top3_Min%_median', 't2_top3_Min%_median',
+#     't1_top8_TS_gini', 't2_top8_TS_gini',
+#     't1_top3_USG_gini', 't2_top3_USG_gini',
+#       
+class AggregatedPlayerStats(FeatureEng):
+
+    def __init__(self, data):
+        self.data = data.copy()
+
+    def gini_coefficient(self, x):
+        x = np.sort(x)  # Sort values
+        n = len(x)
+        cum_x = np.cumsum(x)
+        return (2 * np.sum(np.arange(1, n + 1) * x) - (n + 1) * cum_x[-1]) / (n * cum_x[-1])
+
+    def calculate_team_season_stats(self, df, team_column):
+        # Ensure numeric types for "Min%" and the required columns
+        required_columns = ["TO", "PRPG!", "DR", "STL", "Min%", "TS", "USG"]
+        df["Min%"] = df["Min%"].astype(float)
+        for col in required_columns:
+            df[col] = df[col].astype(float)
+        
+        grouped_stats = []
+        
+        # Process each team-season group
+        for (team, season), group in df.groupby([team_column, "Season"]):
+            stats = {team_column: team, "Season": season}
+            # Sort the group by "Min%" in descending order once
+            group = group.sort_values("Min%", ascending=False)
+            
+            # For column TO: top 8 players stdev
+            top8 = group.head(8)
+            values = top8["TO"].dropna()
+            if len(values) > 0:
+                stats["top8_TO_stdev"] = values.std(ddof=0)
+            else:
+                stats["top8_TO_stdev"] = np.nan
+            
+            # For column PRPG!: top 5 players median
+            top5 = group.head(5)
+            values = top5["PRPG!"].dropna()
+            if len(values) > 0:
+                stats["top5_PRPG!_median"] = values.median()
+            else:
+                stats["top5_PRPG!_median"] = np.nan
+            
+            # For column DR: top 3 players median
+            top3 = group.head(3)
+            values = top3["DR"].dropna()
+            if len(values) > 0:
+                stats["top3_DR_median"] = values.median()
+            else:
+                stats["top3_DR_median"] = np.nan
+            
+            # For column STL: top 5 players coefficient of variation (cv)
+            top5 = group.head(5)
+            values = top5["STL"].dropna()
+            if len(values) > 0:
+                mean_val = values.mean()
+                stdev_val = values.std(ddof=0)
+                stats["top5_STL_cv"] = stdev_val / mean_val if mean_val != 0 else np.nan
+            else:
+                stats["top5_STL_cv"] = np.nan
+            
+            # For column Min%: top 3 players median
+            top3 = group.head(3)
+            values = top3["Min%"].dropna()
+            if len(values) > 0:
+                stats["top3_Min%_median"] = values.median()
+            else:
+                stats["top3_Min%_median"] = np.nan
+            
+            # For column TS: top 8 players gini coefficient
+            top8 = group.head(8)
+            values = top8["TS"].dropna()
+            if len(values) > 0:
+                stats["top8_TS_gini"] = self.gini_coefficient(values)
+            else:
+                stats["top8_TS_gini"] = np.nan
+            
+            # For column USG: top 3 players gini coefficient
+            top3 = group.head(3)
+            values = top3["USG"].dropna()
+            if len(values) > 0:
+                stats["top3_USG_gini"] = self.gini_coefficient(values)
+            else:
+                stats["top3_USG_gini"] = np.nan
+            
+            grouped_stats.append(stats)
+        
+        return pd.DataFrame(grouped_stats)
+
 
     def process(self):
-        return self.injury_data[["TeamID", "Season", "injured_players_value", "health_score"]]
+        # Needs updating to call calculate_team_season_stats and then grab the columns needed
+        # Maybe if I just use TeamID as the team column I don't need to worry (like below)
 
-    
+        result = self.calculate_team_season_stats(self.data, "TeamID")
 
-
+        return result 

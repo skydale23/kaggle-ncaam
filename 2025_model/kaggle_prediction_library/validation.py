@@ -97,7 +97,7 @@ def rolling_season_cv(model, train_input, features, label='Outcome', cv_start=20
 
             model.fit(X_train[features], y_train)
 
-            print(model.named_steps['logisticregression'].coef_)
+            #print(model.named_steps['logisticregression'].coef_)
             
             y_prob = model.predict_proba(X_test[features])
 
