@@ -501,6 +501,14 @@ class AggregatedPlayerStats(FeatureEng):
                 stats["top3_USG_gini"] = self.gini_coefficient(values)
             else:
                 stats["top3_USG_gini"] = np.nan
+
+            top8 = group.head(8)
+            mask = top8["BPM"].notna()
+            if mask.sum() > 0:
+                weighted_mean = np.average(top8.loc[mask, "BPM"], weights=top8.loc[mask, "Min%"])
+            else:
+                weighted_mean = np.nan
+            stats["top8_BPM_weighted_mean"] = weighted_mean
             
             grouped_stats.append(stats)
         
@@ -511,6 +519,8 @@ class AggregatedPlayerStats(FeatureEng):
         # Needs updating to call calculate_team_season_stats and then grab the columns needed
         # Maybe if I just use TeamID as the team column I don't need to worry (like below)
 
-        result = self.calculate_team_season_stats(self.data, "TeamID")
+        data = self.data.copy()
+
+        result = self.calculate_team_season_stats(data, "TeamID")
 
         return result 

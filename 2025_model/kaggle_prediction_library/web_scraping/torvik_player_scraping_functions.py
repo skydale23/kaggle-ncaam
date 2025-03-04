@@ -8,7 +8,7 @@ from typing import Any, List
 from bs4 import BeautifulSoup
 import pandas as pd
 
-def build_url(year: str, start_date: str, end_date: str) -> str:
+def build_url(year: str, start_date: str, end_date: str, womens: bool=False) -> str:
     """
     Build the URL for scraping player stats from Bart Torvik's website.
 
@@ -19,7 +19,11 @@ def build_url(year: str, start_date: str, end_date: str) -> str:
     Returns:
         A formatted URL string.
     """
-    base_url = "https://barttorvik.com/playerstat.php"
+    if womens:    
+        base_url = "https://barttorvik.com/ncaaw/playerstat.php"
+    else:
+        base_url = "https://barttorvik.com/playerstat.php"
+
     params = (
         "link=y",
         "sIndex=53",
@@ -74,7 +78,7 @@ def click_show_more(driver: webdriver.Chrome, max_clicks: int = 40) -> None:
             break
 
 
-def get_html_from_torvik_players(year:str, start_date: str, end_date: str, max_page_expansion_clicks:int=40) -> str:
+def get_html_from_torvik_players(year:str, start_date: str, end_date: str, max_page_expansion_clicks:int=40, womens:str = False) -> str:
     """
     Scrapes player statistics from Bart Torvik's website for a given date range.
     
@@ -88,7 +92,7 @@ def get_html_from_torvik_players(year:str, start_date: str, end_date: str, max_p
     Returns:
         The HTML source of the fully loaded page.
     """
-    url: str = build_url(year, start_date, end_date)
+    url: str = build_url(year, start_date, end_date, womens)
     print(f"Loading URL: {url}")
 
     # Initialize the webdriver (adjust if using a different browser)

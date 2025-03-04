@@ -1,3 +1,5 @@
+# Work Summary
+
 This readme summarizes the work that was done in 2025:
 
 1. **Odds Model for NCAAW**
@@ -31,3 +33,25 @@ If that concern is unfounded, then I've made the most significant improvement to
 
 Baseline (Rolling CV 2013+): 0.186615
 New (Rolling CV 2013+): 0.172781
+
+4. **Player Stat Features for Womens**
+I also tried adding the player stat for womens. The issue we face is that there are only 4 seasons of data where we have the data. 
+
+I found that training the new model on just 4 seasons of data performed about as well as training the baseline model on all data.
+
+I did find however, that using the mens model for training with the new features actually improved performance over both.
+
+However since this feels a bit risky, I am thinking of averaging the two models together. 
+
+Baseline using womens all data: 0.146515
+New Features using womens and 4 years: 0.145723 
+New Features using mens for training: 0.13974
+
+# Final Approach
+
+Submission 1: Use exact same approach as last year
+
+Submission 2: 
+1. Mens: Train separate models for first and second round. Use the identified player stats along with the baselines for these models.
+2. Womens: Train a model using mens data (and womens data) using the new stats. Consider training a second model using last year's approach and blending them together 
+
