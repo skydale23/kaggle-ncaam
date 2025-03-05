@@ -51,7 +51,7 @@ class PreProcess():
                                     np.where(df_losers['WLoc'] == 'A', 'H', 'N'))
         
         #Create full df
-        full = df_winners.append(df_losers)
+        full = pd.concat([df_winners, df_losers], axis=0)
         full["margin"] = full["Team1_score"] - full["Team2_score"]
 
         return full
