@@ -14,7 +14,7 @@ Naturally, there's some leakage here because we wouldn't know for sure that the 
 
 I then created the feature in two ways:
 * First calculate (Torvik Min% * PRPG!) / sum((Torvik Min% * PRPG!)) to get a player_perc_quality. Then calculate the sum of player_perc_quality among players who actually played in game 1 / the total player_perc_quality
-* Second get Sum([avaialbility flag * PRPG!]) / Sum([% games played * PRPG!]) -- bascially this gives us the ratio of quality available now vs. during the season
+* Second get Sum([availability flag * PRPG!]) / Sum([% games played * PRPG!]) -- bascially this gives us the ratio of quality available now vs. during the season
 
 My initial findings were that feature 1 worked better, but that it had a clear positive impact
 
@@ -35,9 +35,9 @@ Baseline (Rolling CV 2013+): 0.186615
 New (Rolling CV 2013+): 0.172781
 
 4. **Player Stat Features for Womens**
-I also tried adding the player stat for womens. The issue we face is that there are only 4 seasons of data where we have the data. 
+I also tried adding the player stat for womens. The issue we face is that there are only 4 seasons where we have the data. 
 
-I found that training the new model on just 4 seasons of data performed about as well as training the baseline model on all data.
+I found that training the new model using just 4 seasons of data performed about as well as training the baseline model on all data.
 
 I did find however, that using the mens model for training with the new features actually improved performance over both.
 
