@@ -1,4 +1,14 @@
-# Work Summary
+# Set Up Summary
+
+Once the tournament starts, we need to gather some data ourselves and also wait for some data from the Kaggle folks.
+
+1. Torvik Player Data: We need to run ur scraper to get the snapshot of torvik player data for the current season. A full exampl is in development_notebooks/perform_torvik_player_scraping and development_notebooks/perform_torvik_player_scraping_ncaaw. Note that sometimes it takes a while for the initial page to load so you may need to adjust the time we wait before we start telling the script to "press load more". Note: we need to do this for both men and womens data.
+
+2. Odds Data: We need to collect the vegas spread for each of the first round games. Unfortunately, we need to wait until all the playins are over to get the most accurate data, but we could also just adjust the playins and take the other odds at the start of the week. 
+
+3. Seeds [From Kaggle]: We need kaggle to drop the seeds. We use seed diff for some of the women's models and even if we don't we need the seeds to back into the round number for the mens models since we use a different model for 1st vs. remaining rounds. Technically we could set this up ourselves but we might as well wait for them to do it. 
+
+# Development Work Summary
 
 This readme summarizes the work that was done in 2025:
 

@@ -99,7 +99,7 @@ def get_html_from_torvik_players(year:str, start_date: str, end_date: str, max_p
     driver: Any = webdriver.Chrome()
     driver.get(url)
 
-    time.sleep(30)
+    time.sleep(60*5)
 
     # Click on the "Games" column to include it in the data.
     click_games_column(driver)
