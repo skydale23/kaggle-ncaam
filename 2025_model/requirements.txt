@@ -1,0 +1,7 @@
+pandas
+numpy
+scikit-learn
+statsmodels
+hyperopt
+selenium
+beautifulsoup4
